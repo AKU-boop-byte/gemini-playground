@@ -1,5 +1,6 @@
 # Gemini 2.0 PlayGround 
 # Gemini 2.0 游乐场
+#链接直达地址：https://gemini-play-aku.deno.dev/
 
 # [English Version](README_EN.MD)
 
