@@ -1,0 +1,613 @@
+:root {
+    --primary-color: #4285f4;
+    --secondary-color: #34a853;
+    --danger-color: #ea4335;
+    --background-color: #f0f0f0;
+    --surface-color: #fff;
+    --border-color: #ccc;
+    --text-color: #333;
+    --text-secondary: #666;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --border-radius: 8px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --primary-color-rgb: 66, 133, 244;
+}
+
+body {
+    font-family: sans-serif;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-height: 100vh;
+    background-color: #f0f0f0;
+}
+
+#app {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    width: 80%;
+    max-width: 1000px;
+}
+
+#logs-container {
+    border: 1px solid #ccc;
+    height: 300px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease;
+    scroll-behavior: smooth;
+}
+
+#logs-container:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.log-entry {
+    font-size: 0.9em;
+    margin-bottom: 5px;
+}
+
+.log-entry.system {
+    color: #080; /* Green for system messages */
+}
+
+.log-entry.user {
+    color: #008; /* Blue for user messages */
+}
+
+.log-entry.ai {
+    color: #800; /* Red for AI messages */
+}
+
+.log-entry .timestamp {
+    color: #888;
+    margin-right: 5px;
+}
+
+.log-entry .emoji {
+    margin-right: 5px;
+}
+
+#message-input {
+    width: calc(100% - 100px);
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+#send-button, #mic-button {
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: #4285f4;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+#send-button:hover, #mic-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#send-button:active, #mic-button:active {
+    transform: translateY(1px);
+}
+
+#send-button::after, #mic-button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+}
+
+#send-button:active::after, #mic-button:active::after {
+    width: 200px;
+    height: 200px;
+}
+
+#audio-visualizer {
+    width: 100%;
+    height: 20px;
+    background-color: #eee;
+    margin-top: 10px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.audio-bar {
+    height: 100%;
+    background-color: #4285f4;
+    width: 0%;
+}
+
+/* Add a simple animation for the audio bars */
+@keyframes audio-pulse {
+    0% {
+        transform: scaleY(1);
+    }
+    50% {
+        transform: scaleY(1.5);
+    }
+    100% {
+        transform: scaleY(1);
+    }
+}
+
+.audio-bar.active {
+    animation: audio-pulse 0.5s infinite;
+}
+
+#connect-button {
+    padding: 10px 20px;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: #34a853;
+    color: #fff;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#connect-button.connected {
+    background-color: #ea4335;
+}
+
+#video-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 480px;
+    z-index: 100;
+}
+
+#video-container video {
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.video-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 101;
+}
+
+#stop-video {
+    background: #ea4335;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#stop-video:hover {
+    background: #d33426;
+}
+
+#flip-camera {
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#camera-button {
+    background: #4285f4;
+    color: white;
+    border: none;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+#camera-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#camera-button:active {
+    transform: translateY(1px);
+}
+
+#camera-button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+}
+
+#camera-button:active::after {
+    width: 200px;
+    height: 200px;
+}
+
+#camera-button.active {
+    background: #ea4335;
+}
+
+#frame-preview {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 120px;
+    height: 90px;
+    border: 2px solid rgba(66, 133, 244, 0.8);
+    border-radius: 4px;
+    background: #000;
+    z-index: 2;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+#frame-preview:hover {
+    transform: scale(1.1);
+    border-color: #4285f4;
+}
+
+#frame-preview.enlarged {
+    width: 480px;
+    height: 360px;
+    bottom: 50%;
+    right: 50%;
+    transform: translate(50%, 50%);
+    z-index: 4;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Add overlay when preview is enlarged */
+#frame-preview.enlarged::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: -1;
+}
+
+/* Improve video controls visibility */
+.video-controls {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#video-container:hover .video-controls {
+    opacity: 1;
+}
+
+#screen-button {
+    background: #4285f4;
+    color: white;
+    border: none;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+#screen-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#screen-button:active {
+    transform: translateY(1px);
+}
+
+#screen-button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+}
+
+#screen-button:active::after {
+    width: 200px;
+    height: 200px;
+}
+
+#screen-button.active {
+    background: #ea4335;
+}
+
+/* Add styles for screen preview */
+#screen-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    width: 480px;
+    height: 360px;
+    transition: all 0.3s ease;
+    display: none;
+    z-index: 1000;
+}
+
+#screen-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+    display: block;
+}
+
+/* Add hover effect */
+#screen-container:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+}
+
+/* Add a close button */
+#screen-container .close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#screen-container:hover .close-button {
+    opacity: 1;
+}
+
+#screen-container .close-button:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.audio-visualizers {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.visualizer-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.visualizer-container label {
+    font-size: 0.8em;
+    color: #666;
+}
+
+#input-audio-visualizer,
+#audio-visualizer {
+    width: 100%;
+    height: 20px;
+    background-color: #eee;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+#input-audio-visualizer .audio-bar {
+    height: 100%;
+    background-color: #34a853; /* Green for input audio */
+    width: 0%;
+}
+
+#audio-visualizer .audio-bar {
+    height: 100%;
+    background-color: #4285f4; /* Blue for output audio */
+    width: 0%;
+}
+
+/* Update the animation for both visualizers */
+@keyframes audio-pulse {
+    0% {
+        transform: scaleY(1);
+    }
+    50% {
+        transform: scaleY(1.5);
+    }
+    100% {
+        transform: scaleY(1);
+    }
+}
+
+.audio-bar.active {
+    animation: audio-pulse 0.5s infinite;
+}
+
+.settings {
+    margin-bottom: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+#api-key {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 300px;
+}
+
+#voice-select  #response-type-select{
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+ 
+/* Configuration panel */
+#config-container {
+    background: var(--surface-color);
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: none;
+}
+
+#config-container.active {
+    display: block;
+}
+.config-wrapper {
+    display: grid;
+    gap: var(--spacing-md);
+    max-width: 600px;
+    margin: 0 auto;
+}
+#apply-config {
+    padding: var(--spacing-md);
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#apply-config:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#system-instruction {
+    padding: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 14px;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    #app {
+        padding: var(--spacing-sm);
+        width: 96%;
+    }
+
+    .hidden-mobile {
+        display: none;
+    }
+
+    #config-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1000;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        overflow-y: auto;
+        display: block;
+        background: var(--surface-color);
+        padding: var(--spacing-lg);
+    }
+
+    #config-container.active {
+        transform: translateX(0);
+    }
+
+    .logs-wrapper {
+        max-height: 30vh;
+    }
+
+    #logs-container {
+        max-height: calc(30vh - 50px);
+    }
+
+    .input-controls {
+        position: sticky;
+        bottom: 0;
+        background: var(--surface-color);
+        padding: var(--spacing-md);
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+    }
+
+    .action-buttons {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    #video-container {
+        width: 60%;
+        max-height: 40vh;
+        bottom: 0;
+        right: 0;
+    }
+
+    #screen-container {
+        width: 100%;
+        height: 50vh;
+        bottom: 0;
+        left: 0;
+        right: auto;
+    }
+}
+
+.setting-container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.setting-label {
+    font-size: 12px;
+    font-weight: bold;
+}
+
+
+.fps-help {
+    color: #666;
+    font-size: 12px;
+}
