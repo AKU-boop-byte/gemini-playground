@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>百度地图工具调试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>百度地图工具调试</h1>
+        
+        <div>
+            <h3>测试地点搜索</h3>
+            <input type="text" id="query" placeholder="搜索关键词" value="北京大学">
+            <input type="text" id="region" placeholder="地区" value="北京">
+            <button onclick="testLocationSearch()">搜索地点</button>
+        </div>
+        
+        <div>
+            <h3>测试路线规划</h3>
+            <input type="text" id="origin" placeholder="起点" value="北京西站">
+            <input type="text" id="destination" placeholder="终点" value="北京大学">
+            <button onclick="testDirections()">获取路线</button>
+        </div>
+        
+        <div>
+            <h3>测试工具声明</h3>
+            <button onclick="testToolDeclarations()">查看可用工具</button>
+        </div>
+        
+        <div id="log" class="log"></div>
+    </div>
+
+    <script type="module">
+        import { ToolManager } from './src/static/js/tools/tool-manager.js';
+        import { BaiduMapTool } from './src/static/js/tools/baidu-map-tool.js';
+
+        const log = document.getElementById('log');
+        
+        function addLog(message) {
+            const div = document.createElement('div');
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // 测试工具管理器
+        const toolManager = new ToolManager();
+        
+        window.testLocationSearch = async function() {
+            const query = document.getElementById('query').value;
+            const region = document.getElementById('region').value;
+            
+            addLog(`开始搜索: ${query} 在 ${region}`);
+            
+            try {
+                const baiduTool = new BaiduMapTool();
+                const result = await baiduTool.execute({ query, region });
+                
+                if (result.results && result.results.length > 0) {
+                    const first = result.results[0];
+                    addLog(`✅ 找到: ${first.name}`);
+                    addLog(`📍 地址: ${first.address}`);
+                    addLog(`📍 坐标: ${first.location.lat}, ${first.location.lng}`);
+                    addLog(`📞 电话: ${first.telephone || '无'}`);
+                } else {
+                    addLog('❌ 未找到结果');
+                }
+            } catch (error) {
+                addLog(`❌ 错误: ${error.message}`);
+            }
+        };
+        
+        window.testDirections = async function() {
+            const origin = document.getElementById('origin').value;
+            const destination = document.getElementById('destination').value;
+            
+            addLog(`开始规划路线: ${origin} → ${destination}`);
+            
+            try {
+                const baiduTool = new BaiduMapTool();
+                const result = await baiduTool.execute({ 
+                    origin: origin.includes(',') ? origin : origin, 
+                    destination: destination.includes(',') ? destination : destination 
+                });
+                
+                if (result.result && result.result.routes && result.result.routes.length > 0) {
+                    const route = result.result.routes[0];
+                    addLog(`✅ 路线信息:`);
+                    addLog(`📏 距离: ${route.distance}米 (${(route.distance/1000).toFixed(1)}公里)`);
+                    addLog(`⏱️ 时间: ${Math.round(route.duration/60)}分钟`);
+                    addLog(`🛣️ 步骤数: ${route.steps ? route.steps.length : 0}`);
+                } else {
+                    addLog('❌ 未找到路线');
+                }
+            } catch (error) {
+                addLog(`❌ 错误: ${error.message}`);
+            }
+        };
+        
+        window.testToolDeclarations = function() {
+            addLog('📋 查看工具声明...');
+            const declarations = toolManager.getToolDeclarations();
+            addLog(`🔧 工具数量: ${declarations[0].functionDeclarations.length}`);
+            
+            declarations[0].functionDeclarations.forEach((tool, index) => {
+                addLog(`${index + 1}. ${tool.name}: ${tool.description}`);
+            });
+        };
+        
+        // 初始化时显示工具信息
+        addLog('🚀 工具调试页面已加载');
+        testToolDeclarations();
+    </script>
+</body>
+</html>

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket调试工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .error {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #f8f9fa;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        input[type="text"], input[type="password"], select {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .config-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .model-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 WebSocket调试工具 - Google Gemini API</h1>
+        
+        <div id="status" class="status disconnected">
+            未连接到Google Gemini API
+        </div>
+        
+        <div class="config-section">
+            <h3>连接配置</h3>
+            <div class="input-group">
+                <input type="password" id="apiKey" placeholder="输入Google Gemini API密钥" value="">
+                <select id="modelSelect">
+                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</option>
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                </select>
+                <select id="responseType">
+                    <option value="audio">音频+文本</option>
+                    <option value="text">仅文本</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <input type="text" id="systemInstruction" placeholder="系统指令" value="你是一个有用的助手，可以看到和听到用户，并用语音和文字回应。">
+            </div>
+            <div class="input-group">
+                <button onclick="connectToGoogle()">连接Google API</button>
+                <button onclick="disconnectFromGoogle()" disabled>断开连接</button>
+                <button onclick="testConnection()">测试连接</button>
+            </div>
+        </div>
+        
+        <div class="container">
+            <h3>📝 消息测试</h3>
+            <div class="input-group">
+                <input type="text" id="testMessage" placeholder="输入测试消息..." value="你好，能听见我吗？" onkeypress="handleKeyPress(event)">
+                <button onclick="sendTestMessage()" disabled>发送消息</button>
+                <button onclick="sendAudioTest()" disabled>发送音频测试</button>
+            </div>
+        </div>
+        
+        <div class="container">
+            <h3>📊 调试日志</h3>
+            <div id="debugLog" class="messages"></div>
+            <div class="input-group">
+                <button onclick="clearLog()">清空日志</button>
+                <button onclick="exportLog()">导出日志</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let isConnected = false;
+        let audioContext = null;
+        let mediaStream = null;
+
+        function addLog(message, type = 'info') {
+            const logEl = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            
+            let color = '#333';
+            if (type === 'error') color = '#dc3545';
+            else if (type === 'success') color = '#28a745';
+            else if (type === 'warning') color = '#ffc107';
+            else if (type === 'sent') color = '#007bff';
+            else if (type === 'received') color = '#6f42c1';
+            
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> <span style="color: ${color};">${message}</span>`;
+            logEntry.style.margin = '2px 0';
+            logEntry.style.padding = '2px 0';
+            logEl.appendChild(logEntry);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            isConnected = connected;
+            const statusEl = document.getElementById('status');
+            const connectBtn = document.querySelector('button[onclick="connectToGoogle()"]');
+            const disconnectBtn = document.querySelector('button[onclick="disconnectFromGoogle()"]');
+            const sendMsgBtn = document.querySelector('button[onclick="sendTestMessage()"]');
+            const sendAudioBtn = document.querySelector('button[onclick="sendAudioTest()"]');
+            
+            if (connected) {
+                statusEl.textContent = '已连接到Google Gemini API';
+                statusEl.className = 'status connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                sendMsgBtn.disabled = false;
+                sendAudioBtn.disabled = false;
+            } else {
+                statusEl.textContent = '未连接到Google Gemini API';
+                statusEl.className = 'status disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                sendMsgBtn.disabled = true;
+                sendAudioBtn.disabled = true;
+            }
+        }
+
+        function connectToGoogle() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) {
+                addLog('❌ 请输入API密钥', 'error');
+                return;
+            }
+
+            const model = document.getElementById('modelSelect').value;
+            const responseType = document.getElementById('responseType').value;
+            const systemInstruction = document.getElementById('systemInstruction').value;
+
+            // 使用正确的WebSocket URL格式
+            const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`;
+            
+            addLog(`🔗 正在连接到: ${wsUrl}`, 'info');
+            
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = function(event) {
+                    addLog('✅ WebSocket连接已建立', 'success');
+                    
+                    // 发送配置 - 使用Google Gemini API的正确格式
+                    const config = {
+                        setup: {
+                            model: `models/${model}`,
+                            generation_config: {
+                                response_modalities: responseType === 'audio' ? ["AUDIO", "TEXT"] : ["TEXT"],
+                                speech_config: {
+                                    voice_config: {
+                                        prebuilt_voice_config: {
+                                            voice_name: "Aoede"
+                                        }
+                                    }
+                                }
+                            },
+                            system_instruction: {
+                                parts: [{ text: systemInstruction }]
+                            }
+                        }
+                    };
+                    
+                    ws.send(JSON.stringify(config));
+                    addLog('📤 已发送配置: ' + JSON.stringify(config, null, 2), 'sent');
+                    
+                    updateStatus(true);
+                };
+                
+                ws.onmessage = function(event) {
+                    if (event.data instanceof Blob) {
+                        event.data.text().then(text => {
+                            try {
+                                const data = JSON.parse(text);
+                                addLog('📥 收到消息: ' + JSON.stringify(data, null, 2), 'received');
+                            } catch (e) {
+                                addLog('📥 收到原始数据: ' + text, 'received');
+                            }
+                        });
+                    } else {
+                        try {
+                            const data = JSON.parse(event.data);
+                            addLog('📥 收到消息: ' + JSON.stringify(data, null, 2), 'received');
+                        } catch (e) {
+                            addLog('📥 收到原始数据: ' + event.data, 'received');
+                        }
+                    }
+                };
+                
+                ws.onerror = function(error) {
+                    addLog('❌ WebSocket错误: ' + JSON.stringify(error), 'error');
+                    console.error('WebSocket error:', error);
+                };
+                
+                ws.onclose = function(event) {
+                    addLog(`🔌 连接已关闭 - 代码: ${event.code}, 原因: ${event.reason || '未知'}`, 'warning');
+                    updateStatus(false);
+                };
+                
+            } catch (error) {
+                addLog('❌ 连接失败: ' + error.message, 'error');
+                console.error('Connection error:', error);
+            }
+        }
+
+        function disconnectFromGoogle() {
+            if (ws) {
+                ws.close();
+                ws = null;
+                updateStatus(false);
+                addLog('🔌 已断开连接', 'info');
+            }
+        }
+
+        function sendTestMessage() {
+            const message = document.getElementById('testMessage').value.trim();
+            if (!message || !ws || ws.readyState !== WebSocket.OPEN) {
+                addLog('❌ 无法发送消息', 'error');
+                return;
+            }
+
+            const messageData = {
+                client_content: {
+                    turns: [{
+                        role: 'user',
+                        parts: [{ text: message }]
+                    }],
+                    turn_complete: true
+                }
+            };
+            
+            ws.send(JSON.stringify(messageData));
+            addLog('📤 发送消息: ' + JSON.stringify(messageData, null, 2), 'sent');
+        }
+
+        async function sendAudioTest() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                addLog('❌ 无法发送音频测试', 'error');
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                addLog('🎤 麦克风权限已获取', 'success');
+                
+                // 这里可以添加实际的音频录制和发送逻辑
+                stream.getTracks().forEach(track => track.stop());
+                
+                addLog('🎵 音频测试完成', 'info');
+            } catch (error) {
+                addLog('❌ 获取麦克风权限失败: ' + error.message, 'error');
+            }
+        }
+
+        function testConnection() {
+            addLog('🧪 开始连接测试...', 'info');
+            
+            // 测试网络连接
+            fetch('https://www.google.com', { mode: 'no-cors' })
+                .then(() => addLog('✅ 网络连接正常', 'success'))
+                .catch(() => addLog('⚠️ 网络连接可能有问题', 'warning'));
+            
+            // 测试API端点
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (apiKey) {
+                fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`)
+                    .then(response => {
+                        if (response.ok) {
+                            addLog('✅ API密钥有效', 'success');
+                        } else {
+                            addLog('❌ API密钥无效或权限不足', 'error');
+                        }
+                    })
+                    .catch(error => addLog('❌ API测试失败: ' + error.message, 'error'));
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendTestMessage();
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('debugLog').innerHTML = '';
+        }
+
+        function exportLog() {
+            const logContent = document.getElementById('debugLog').innerText;
+            const blob = new Blob([logContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `websocket-debug-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 页面加载时添加欢迎信息
+        addLog('🔍 WebSocket调试工具已加载', 'info');
+        addLog('📋 请填写API密钥并点击"连接Google API"开始测试', 'info');
+        addLog('🔗 目标: wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent', 'info');
+    </script>
+</body>
+</html>
